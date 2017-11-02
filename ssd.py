@@ -136,12 +136,26 @@ def vgg(cfg, i, batch_norm=False):
                 layers += [conv2d, nn.ReLU(inplace=True)]
             in_channels = v
     pool5 = nn.MaxPool2d(kernel_size=3, stride=1, padding=1)
+    # dilation....
     conv6 = nn.Conv2d(512, 1024, kernel_size=3, padding=6, dilation=6)
     conv7 = nn.Conv2d(1024, 1024, kernel_size=1)
     layers += [pool5, conv6,
                nn.ReLU(inplace=True), conv7, nn.ReLU(inplace=True)]
     return layers
 
+# base layers: [64, relu, 64, relu, 'M', 128, relu, 128, relu, 'M',
+#               256, relu, 256, relu, 256, relu, 'C', 512, relu, 512,
+#               relu, 512, relu, 'M', 512, relu, 512, relu, 512, relu,
+#               pool5, conv6, relu, conv7, relu]
+# base = {
+#     '300': [64, 64, 'M', 128, 128, 'M', 256, 256, 256, 'C', 512, 512, 512, 'M',
+#             512, 512, 512],
+#     '512': [],
+# }
+# extras = {
+#     '300': [256, 'S', 512, 128, 'S', 256, 128, 256, 128, 256],
+#     '512': [],
+# }
 
 def add_extras(cfg, i, batch_norm=False):
     # Extra layers added to VGG for feature scaling
@@ -163,12 +177,19 @@ def add_extras(cfg, i, batch_norm=False):
 def multibox(vgg, extra_layers, cfg, num_classes):
     loc_layers = []
     conf_layers = []
+
+    # vgg[24] conv5_1 것 같은데 conv4_3이라고 한다......
+    # vgg[21]이 conv4_3 같은데...
     vgg_source = [24, -2]
+
+    # conv4_3 before relu, conv7 before relu에 detection을 위한 offset, class confidence layer들을 추가.
     for k, v in enumerate(vgg_source):
         loc_layers += [nn.Conv2d(vgg[v].out_channels,
                                  cfg[k] * 4, kernel_size=3, padding=1)]
         conf_layers += [nn.Conv2d(vgg[v].out_channels,
                         cfg[k] * num_classes, kernel_size=3, padding=1)]
+
+    # extra layer들에 대해 detection을 위한 offset, class confidence layer들을 추가.
     for k, v in enumerate(extra_layers[1::2], 2):
         loc_layers += [nn.Conv2d(v.out_channels, cfg[k]
                                  * 4, kernel_size=3, padding=1)]
@@ -177,11 +198,14 @@ def multibox(vgg, extra_layers, cfg, num_classes):
     return vgg, extra_layers, (loc_layers, conf_layers)
 
 
+# 'M' kernel size=2와 stride=2의 max pooling.
+# 'C' 'M'과 같은 max pooling이고, ceil_mode=True. 논문에는 나타나지 안되어 있음.
 base = {
     '300': [64, 64, 'M', 128, 128, 'M', 256, 256, 256, 'C', 512, 512, 512, 'M',
             512, 512, 512],
     '512': [],
 }
+# 'S' stride=2와 padding=1의 convolution layer이고, 'S'의 숫자가 filter의 개수이다.
 extras = {
     '300': [256, 'S', 512, 128, 'S', 256, 128, 256, 128, 256],
     '512': [],
