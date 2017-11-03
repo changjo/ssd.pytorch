@@ -100,13 +100,19 @@ def match(threshold, truths, priors, variances, labels, loc_t, conf_t, idx):
     best_prior_overlap, best_prior_idx = overlaps.max(1, keepdim=True)
     # [1,num_priors] best ground truth for each prior
     best_truth_overlap, best_truth_idx = overlaps.max(0, keepdim=True)
+    ## torch.squeeze_ : 크기가 1인 dimension을 모두 제거한 Tensor를 return한다.
     best_truth_idx.squeeze_(0)
     best_truth_overlap.squeeze_(0)
     best_prior_idx.squeeze_(1)
     best_prior_overlap.squeeze_(1)
+
+    ## axis 0에 대해서 best_prior_idx에 해당되는 값을 2로 바꾼다.
+    ## 나중에 best matching 된 priors를 반드시 사용되게 하기 위해서..
     best_truth_overlap.index_fill_(0, best_prior_idx, 2)  # ensure best prior
+
     # TODO refactor: index  best_prior_idx with long tensor
     # ensure every gt matches with its prior of max overlap
+    ## 각각의 ground truths 대해서 best matching 된 priors를 반드시 사용되게 하기 위해..
     for j in range(best_prior_idx.size(0)):
         best_truth_idx[best_prior_idx[j]] = j
     matches = truths[best_truth_idx]          # Shape: [num_priors,4]
@@ -130,6 +136,10 @@ def encode(matched, priors, variances):
         encoded boxes (tensor), Shape: [num_priors, 4]
     """
 
+    ## matched[0,:] : (xmin, ymin, xmax, ymax)
+    ## 저자 논문 p. 5에 나와 있는 대로 계산.
+    ## localization loss를 계산할 때 사용.
+
     # dist b/t match center and prior's center
     g_cxcy = (matched[:, :2] + matched[:, 2:])/2 - priors[:, :2]
     # encode variance
@@ -142,6 +152,7 @@ def encode(matched, priors, variances):
 
 
 # Adapted from https://github.com/Hakuyume/chainer-ssd
+## encode 계산 했던 연산 역으로 계산..
 def decode(loc, priors, variances):
     """Decode locations from predictions using priors to undo
     the encoding we did for offset regression at train time.
