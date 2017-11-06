@@ -86,21 +86,36 @@ class SSD(nn.Module):
             x = F.relu(v(x), inplace=True)
             if k % 2 == 1:
                 sources.append(x)
+        print(sources)
 
+        ## sources[k] (tensor) : (Shape) [batch_size, channels, |f_k|, |f_k|]
         # apply multibox head to source layers
         for (x, l, c) in zip(sources, self.loc, self.conf):
+            ## permute(0, 2, 3, 1): [batch_size, channels, |f_k|, |f_k|] 을
+            ##                      [batch_size, |f_k|, |f_k|, channels] 로
+            ##                      바꾼다.
             loc.append(l(x).permute(0, 2, 3, 1).contiguous())
             conf.append(c(x).permute(0, 2, 3, 1).contiguous())
 
         loc = torch.cat([o.view(o.size(0), -1) for o in loc], 1)
         conf = torch.cat([o.view(o.size(0), -1) for o in conf], 1)
+        ## loc (tensor) : (Shape) [batch_size, 8732 * 4]
+        ## conf (tensor) : (Shape) [batch_size, 8732 * 21(num_classes)]
+
         if self.phase == "test":
+            ## loc.view(loc.size(0), -1, 4): (Shape) [batch_size, 8732, 4]
+            ## conf 결과에 softmax를 취함.
+            ## loc, softmax를 취한 conf, priors를 이용하여 detect 수행.
+            ## (box decode 포함).
             output = self.detect(
                 loc.view(loc.size(0), -1, 4),                   # loc preds
                 self.softmax(conf.view(-1, self.num_classes)),  # conf preds
                 self.priors.type(type(x.data))                  # default boxes
             )
         else:
+            ## loc.view(loc.size(0), -1, 4): (Shape) [batch_size, 8732, 4]
+            ## conf.view(conf.size(0), -1, self.num_classes): (Shape)
+            ##                                  [batch_size, 8732, num_classes]
             output = (
                 loc.view(loc.size(0), -1, 4),
                 conf.view(conf.size(0), -1, self.num_classes),

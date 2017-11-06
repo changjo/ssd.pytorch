@@ -66,6 +66,7 @@ if args.visdom:
     import visdom
     viz = visdom.Visdom()
 
+## Build SSD model..
 ssd_net = build_ssd('train', 300, num_classes)
 net = ssd_net
 
@@ -175,11 +176,21 @@ def train():
         else:
             images = Variable(images)
             targets = [Variable(anno, volatile=True) for anno in targets]
+
+        ## images (tensor): (Shape) [batch_size, channels, 300, 300]
+        ##                  e.g., [16, 3, 300, 300]
+        ## targets: (Shape) [batch_size]
+        ## targets[k] (tensor): (Shape) [num_objects, 5], 앞에 4개 columns은 bounding box
+        ##             를 정의, 마지막 column은 label을 뜻함..
+
         # forward
         t0 = time.time()
         out = net(images)
+
         # backprop
+        ## Clears the gradients of all optimized Variables.
         optimizer.zero_grad()
+
         loss_l, loss_c = criterion(out, targets)
         loss = loss_l + loss_c
         loss.backward()
