@@ -58,42 +58,68 @@ class MultiBoxLoss(nn.Module):
                 shape: [batch_size,num_objs,5] (last idx is the label).
         """
         loc_data, conf_data, priors = predictions
+
+        ## num: batch size.
         num = loc_data.size(0)
         priors = priors[:loc_data.size(1), :]
         num_priors = (priors.size(0))
         num_classes = self.num_classes
 
         # match priors (default boxes) and ground truth boxes
+
+        ## loc_t: Tensor to be filled w/ endcoded location targets.
+        ## conf_t: Tensor to be filled w/ matched indices for conf preds.
         loc_t = torch.Tensor(num, num_priors, 4)
         conf_t = torch.LongTensor(num, num_priors)
         for idx in range(num):
+            ## idx: an index of a batch.
             truths = targets[idx][:, :-1].data
             labels = targets[idx][:, -1].data
             defaults = priors.data
+            ## match(threshold, truths, priors, variances, labels,
+            ##       loc_t, conf_t, idx)
             match(self.threshold, truths, defaults, self.variance, labels,
                   loc_t, conf_t, idx)
+            ## match 함수를 통해 loc_t, conf_t를 구함.
+
         if self.use_gpu:
+            ## loc_t.cuda(): CUDA 메모리 안에 있는 loc_t object의 copy를 리턴..
             loc_t = loc_t.cuda()
             conf_t = conf_t.cuda()
         # wrap targets
+        ## requires_grad=False: 이 변수에 대해 gradient를 계산하지 않는다.
         loc_t = Variable(loc_t, requires_grad=False)
         conf_t = Variable(conf_t, requires_grad=False)
 
+        ## match된 proir의 박스들..
+        ## conf_t[k] == 0: background labels..
         pos = conf_t > 0
+        ## pos (Shape): [batch, num_priors]
         num_pos = pos.sum(keepdim=True)
-
         # Localization Loss (Smooth L1)
-        # Shape: [batch,num_priors,4]
+        ## pos.unsqueeze(pos.dim()): (Shape) [batch, num_priors, 1]
+        ## pos.unsqueeze(pos.dim()).expand_as(loc_data): (Shape)
+        ##                                               [batch,num_priors,4]
         pos_idx = pos.unsqueeze(pos.dim()).expand_as(loc_data)
+        ## expand_as를 하여 [batch, num_priors, 1]을 [batch, num_priors, 4]로
+        ## 늘린다. 이유는 박스를 정의하는 4개의 값을 사용하기 위해서..
+
+        ## Flatten [batch_size, num_priors, 4] to [batch_size * num_priors, 4]
         loc_p = loc_data[pos_idx].view(-1, 4)
         loc_t = loc_t[pos_idx].view(-1, 4)
+        ## Localization loss 계산.
         loss_l = F.smooth_l1_loss(loc_p, loc_t, size_average=False)
 
         # Compute max conf across batch for hard negative mining
+        ## conf_data : (Shape) [batch_size, num_priors, num_classes]
+        ## batch_conf : (Shape) [batch_size * num_priors, num_classes]
         batch_conf = conf_data.view(-1, self.num_classes)
-
         loss_c = log_sum_exp(batch_conf) - batch_conf.gather(1, conf_t.view(-1, 1))
+        ## log_sum_exp(batch_conf) : (Shape) [batch_size * num_priors, 1]
+        ## batch_conf.gather(1, conf_t.view(-1, 1)) : (Shape) [batch_size * num_priors, 1]
+        ## loss_c : (Shape) [batch_size * num_priors, 1]
 
+        ## 다음에 확인해 보기..
         # Hard Negative Mining
         loss_c[pos] = 0  # filter out pos boxes for now
         loss_c = loss_c.view(num, -1)
