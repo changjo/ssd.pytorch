@@ -86,7 +86,6 @@ class SSD(nn.Module):
             x = F.relu(v(x), inplace=True)
             if k % 2 == 1:
                 sources.append(x)
-        print(sources)
 
         ## sources[k] (tensor) : (Shape) [batch_size, channels, |f_k|, |f_k|]
         # apply multibox head to source layers
