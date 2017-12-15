@@ -13,6 +13,9 @@ parser.add_argument('--cuda', default=False, type=bool,
                     help='Use cuda to train model')
 args = parser.parse_args()
 
+if args.cuda and torch.cuda.is_available(): 
+    torch.set_default_tensor_type('torch.cuda.FloatTensor') 
+
 COLORS = [(255, 0, 0), (0, 255, 0), (0, 0, 255)]
 FONT = cv2.FONT_HERSHEY_SIMPLEX
 
@@ -22,6 +25,8 @@ def cv2_demo(net, transform):
         height, width = frame.shape[:2]
         x = torch.from_numpy(transform(frame)[0]).permute(2, 0, 1)
         x = Variable(x.unsqueeze(0))
+        if args.cuda: 
+            x = x.cuda() 
         y = net(x)  # forward pass
         detections = y.data
         # scale each detection back up to the image
@@ -39,13 +44,23 @@ def cv2_demo(net, transform):
 
     # start video stream thread, allow buffer to fill
     print("[INFO] starting threaded video stream...")
-    stream = WebcamVideoStream(src=0).start()  # default camera
+    
+    ##stream = WebcamVideoStream(src=0).start()  # default camera 
+     
+    stream = cv2.VideoCapture(0) 
+    print(stream.get(3), stream.get(4)) 
+    stream.set(3, 640) 
+    stream.set(4, 480) 
+
     time.sleep(1.0)
     # start fps timer
     # loop over frames from the video file stream
     while True:
         # grab next frame
-        frame = stream.read()
+        
+        #frame = stream.read()
+        ret, frame = stream.read()
+
         key = cv2.waitKey(1) & 0xFF
 
         # update FPS counter
@@ -62,6 +77,8 @@ def cv2_demo(net, transform):
         cv2.imshow('frame', frame)
         if key == 27:  # exit
             break
+
+    stream.release()
 
 
 if __name__ == '__main__':
@@ -86,4 +103,4 @@ if __name__ == '__main__':
 
     # cleanup
     cv2.destroyAllWindows()
-    stream.stop()
+    # stream.stop()
