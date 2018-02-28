@@ -94,6 +94,7 @@ def match(threshold, truths, priors, variances, labels, loc_t, conf_t, idx):
     ## overlapes: (tensor) Shape: [truths.size(0), priors.size(0)]
     ##                            [num_obj, num_priors]
     ## 왜 truths의 shape이 [num_obj, num_priors] 라고 할까??
+    ## [num_obj, 4] 일 것이다.
 
     # (Bipartite Matching)
     # [1,num_objects] best prior for each ground truth
