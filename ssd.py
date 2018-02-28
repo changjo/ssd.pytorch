@@ -43,14 +43,14 @@ class SSD(nn.Module):
         self.conf = nn.ModuleList(head[1])
 
         if phase == 'test':
-            self.softmax = nn.Softmax()
+            self.softmax = nn.Softmax(dim=-1)
             self.detect = Detect(num_classes, 0, 200, 0.01, 0.45)
 
     def forward(self, x):
         """Applies network layers and ops on input image(s) x.
 
         Args:
-            x: input image or batch of images. Shape: [batch,3*batch,300,300].
+            x: input image or batch of images. Shape: [batch,3,300,300].
 
         Return:
             Depending on phase:
@@ -108,7 +108,8 @@ class SSD(nn.Module):
             ## (box decode 포함).
             output = self.detect(
                 loc.view(loc.size(0), -1, 4),                   # loc preds
-                self.softmax(conf.view(-1, self.num_classes)),  # conf preds
+                self.softmax(conf.view(conf.size(0), -1,
+                    self.num_classes)),                         # conf preds
                 self.priors.type(type(x.data))                  # default boxes
             )
         else:
@@ -126,7 +127,8 @@ class SSD(nn.Module):
         other, ext = os.path.splitext(base_file)
         if ext == '.pkl' or '.pth':
             print('Loading weights into state dict...')
-            self.load_state_dict(torch.load(base_file, map_location=lambda storage, loc: storage))
+            self.load_state_dict(torch.load(base_file,
+                                 map_location=lambda storage, loc: storage))
             print('Finished!')
         else:
             print('Sorry only .pth and .pkl files supported.')
@@ -191,12 +193,7 @@ def add_extras(cfg, i, batch_norm=False):
 def multibox(vgg, extra_layers, cfg, num_classes):
     loc_layers = []
     conf_layers = []
-
-    # vgg[24] conv5_1 것 같은데 conv4_3이라고 한다......
-    # vgg[21]이 conv4_3 같은데...
-    vgg_source = [24, -2]
-
-    # conv4_3 before relu, conv7 before relu에 detection을 위한 offset, class confidence layer들을 추가.
+    vgg_source = [21, -2]
     for k, v in enumerate(vgg_source):
         loc_layers += [nn.Conv2d(vgg[v].out_channels,
                                  cfg[k] * 4, kernel_size=3, padding=1)]
@@ -237,7 +234,7 @@ def build_ssd(phase, size=300, num_classes=21):
     if size != 300:
         print("Error: Sorry only SSD300 is supported currently!")
         return
-
-    return SSD(phase, *multibox(vgg(base[str(size)], 3),
-                                add_extras(extras[str(size)], 1024),
-                                mbox[str(size)], num_classes), num_classes)
+    base_, extras_, head_ = multibox(vgg(base[str(size)], 3),
+                                     add_extras(extras[str(size)], 1024),
+                                     mbox[str(size)], num_classes)
+    return SSD(phase, base_, extras_, head_, num_classes)

@@ -1,6 +1,12 @@
 # SSD: Single Shot MultiBox Object Detector, in PyTorch
 A [PyTorch](http://pytorch.org/) implementation of [Single Shot MultiBox Detector](http://arxiv.org/abs/1512.02325) from the 2016 paper by Wei Liu, Dragomir Anguelov, Dumitru Erhan, Christian Szegedy, Scott Reed, Cheng-Yang, and Alexander C. Berg.  The official and original Caffe code can be found [here](https://github.com/weiliu89/caffe/tree/ssd). 
-- Note: While I would love it if this were my full-time job, this is currently only a hobby of mine so I cannot guarantee that I will be able to dedicate all my time to updating this repo.  That being said, thanks to everyone for your help and feedback it is really appreciated, and I will try to address everything as soon as I can. 
+
+## Authors
+
+* [**Max de Groot**](https://github.com/amdegroot)
+* [**Ellis Brown**](http://github.com/ellisbrown)
+
+***Note:*** Unfortunately, this is just a hobby of ours and not a full-time job, so we'll do our best to keep things up to date, but no guarantees.  That being said, thanks to everyone for your continued help and feedback as it is really appreciated. We will try to address everything as soon as possible. 
 
 
 <img align="right" src= "https://github.com/amdegroot/ssd.pytorch/blob/master/doc/ssd.png" height = 400/>
@@ -99,33 +105,6 @@ You can specify the parameters listed in the `eval.py` file by flagging them or 
 |:-:|:-:|:-:|:-:|
 | 77.2 % | 77.26 % | 58.12% | 77.43 % |
 
-##### Evaluation report for the current version
-
-VOC07 metric? Yes
-
-AP for aeroplane = 0.8172<br />
-AP for bicycle = 0.8544<br />
-AP for bird = 0.7571<br />
-AP for boat = 0.6958<br />
-AP for bottle = 0.4990<br />
-AP for bus = 0.8488<br />
-AP for car = 0.8577<br />
-AP for cat = 0.8737<br />
-AP for chair = 0.6147<br />
-AP for cow = 0.8233<br />
-AP for diningtable = 0.7917<br />
-AP for dog = 0.8559<br />
-AP for horse = 0.8709<br />
-AP for motorbike = 0.8474<br />
-AP for person = 0.7889<br />
-AP for pottedplant = 0.4996<br />
-AP for sheep = 0.7742<br />
-AP for sofa = 0.7913<br />
-AP for train = 0.8616<br />
-AP for tvmonitor = 0.7631<br />
-Mean AP = 0.7743<br />
-
-
 ##### FPS
 **GTX 1060:** ~45.45 FPS 
 
@@ -140,8 +119,6 @@ Mean AP = 0.7743<br />
       - https://s3.amazonaws.com/amdegroot-models/ssd300_mAP_77.43_v2.pth
     * SSD300 v2 trained on VOC0712 (original Caffe version)
       - https://s3.amazonaws.com/amdegroot-models/ssd_300_VOC0712.pth
-    * SSD300 v1 (original/old pool6 version) trained on VOC07
-      - https://s3.amazonaws.com/amdegroot-models/ssd_300_voc07.tar.gz
 - Our goal is to reproduce this table from the [original paper](http://arxiv.org/abs/1512.02325) 
 <p align="left">
 <img src="http://www.cs.unc.edu/~wliu/papers/ssd_results.png" alt="SSD results on multiple datasets" width="800px"></p>
